@@ -2,6 +2,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const { nanoid } = require("nanoid");
 
+
 const contactsPath = path.resolve("./models/contacts.json");
 
 async function listContacts() {
