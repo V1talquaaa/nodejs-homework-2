@@ -1,4 +1,5 @@
 const express = require("express");
+const authenticate = require("../../middleware/authenticate")
 
 const {
   Contact,
@@ -6,13 +7,13 @@ const {
   updateFavoriteSchema,
 } = require("../../models/contact");
 
-const { HttpError } = require("./helpers");
+const { HttpError } = require("../../helpers");
 
-const { isValidId } = require("./helpers");
+const { isValidId } = require("../../helpers");
 
 const router = express.Router();
 
-router.get("/", async (req, res, next) => {
+router.get("/", authenticate, async (req, res, next) => {
   try {
     const result = await Contact.find();
     if (!result) {
