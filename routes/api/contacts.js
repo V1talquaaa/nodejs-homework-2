@@ -30,7 +30,7 @@ router.get("/:contactId", authenticate, isValidId, async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const result = await Contact.findById(contactId);
-    if (!result) {
+    if (!result || result.owner.toString() !== req.user._id.toString()) {
       throw HttpError(404, "Not found");
     }
     res.json(result);
@@ -56,7 +56,7 @@ router.post("/", authenticate, async (req, res, next) => {
 router.delete("/:contactId", authenticate, async (req, res, next) => {
   try {
     const { contactId } = req.params;
-    const result = await Contact.findByIdAndRemove(contactId);
+    const result = await Contact.findOneAndDelete({ _id: contactId, owner: req.user._id });
     if (!result) {
       throw HttpError(404, "Not found");
     }
@@ -71,7 +71,7 @@ router.delete("/:contactId", authenticate, async (req, res, next) => {
 router.put("/:contactId", authenticate, async (req, res, next) => {
   try {
     const { contactId } = req.params;
-    const result = await Contact.findByIdAndUpdate(contactId, req.body, {
+    const result = await Contact.findByIdAndUpdate({ _id: contactId, owner: req.user._id }, req.body, {
       new: true,
     });
     if (!result) {
@@ -94,7 +94,7 @@ router.patch(
         throw HttpError(400, error.message);
       }
       const { contactId } = req.params;
-      const result = await Contact.findByIdAndUpdate(contactId, req.body, {
+      const result = await Contact.findByIdAndUpdate({ _id: contactId, owner: req.user._id }, req.body, {
         new: true,
       });
       if (!result) {
