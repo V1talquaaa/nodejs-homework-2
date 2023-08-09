@@ -108,8 +108,8 @@ router.patch(
         throw new HttpError(404, "Not found");
       }
       res.json(result);
-    } catch (error) {
-      next(error);
+    } catch {
+      next(HttpError(404, "Not found"));
     }
   }
 );
