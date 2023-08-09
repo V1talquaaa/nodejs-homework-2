@@ -109,7 +109,7 @@ router.patch(
       }
       res.json(result);
     } catch (error) {
-      next(error);
+      next(HttpError(404, "Not found"));
     }
   }
 );
