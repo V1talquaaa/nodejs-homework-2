@@ -29,7 +29,7 @@ router.get("/", authenticate, async (req, res, next) => {
 router.get("/:contactId", authenticate, isValidId, async (req, res, next) => {
   try {
     const { contactId } = req.params;
-    const result = await Contact.findById(contactId);
+    const result = await Contact.findOne({ _id: contactId });
     if (!result || result.owner.toString() !== req.user._id.toString()) {
       throw HttpError(404, "Not found");
     }
@@ -56,7 +56,10 @@ router.post("/", authenticate, async (req, res, next) => {
 router.delete("/:contactId", authenticate, async (req, res, next) => {
   try {
     const { contactId } = req.params;
-    const result = await Contact.findOneAndDelete({ _id: contactId, owner: req.user._id });
+    const result = await Contact.findOneAndDelete({
+      owner: req.user._id,
+      _id: contactId,
+    });
     if (!result) {
       throw HttpError(404, "Not found");
     }
@@ -71,9 +74,11 @@ router.delete("/:contactId", authenticate, async (req, res, next) => {
 router.put("/:contactId", authenticate, async (req, res, next) => {
   try {
     const { contactId } = req.params;
-    const result = await Contact.findByIdAndUpdate({ _id: contactId, owner: req.user._id }, req.body, {
-      new: true,
-    });
+    const result = await Contact.findOneAndUpdate(
+      { owner: req.user._id, _id: contactId },
+      req.body,
+      { new: true }
+    );
     if (!result) {
       throw HttpError(404, "Not found");
     }
@@ -89,19 +94,23 @@ router.patch(
   isValidId,
   async (req, res, next) => {
     try {
+      const { contactId } = req.params;
       const { error } = updateFavoriteSchema.validate(req.body);
       if (error) {
-        throw HttpError(400, error.message);
+        throw new HttpError(400, error.message);
       }
-      const { contactId } = req.params;
-      const result = await Contact.findByIdAndUpdate({ _id: contactId, owner: req.user._id }, req.body, {
-        new: true,
-      });
+      const result = await Contact.findOneAndUpdate(
+        { owner: req.user._id, _id: contactId },
+        req.body,
+        { new: true }
+      );
       if (!result) {
-        throw HttpError(404, "Not found");
+        throw new HttpError(404, "Not found");
       }
       res.json(result);
-    } catch (error) {}
+    } catch (error) {
+      next(error);
+    }
   }
 );
 
