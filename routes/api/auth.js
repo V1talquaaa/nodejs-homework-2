@@ -7,9 +7,18 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { SECRET_KEY } = process.env;
 const authenticate = require("../../middleware/authenticate");
+const upload = require("../../middleware/upload");
+const gravatar = require("gravatar");
+const path = require("path");
+const fs = require("fs/promises");
+const Jimp = require("jimp");
 
-router.post("/register", async (req, res, next) => {
+const avatarDir = path.join(__dirname, "../../", "public", "avatars");
+
+router.post("/register", upload.single("cover"), async (req, res, next) => {
   try {
+    console.log(req.body);
+    console.log(req.file);
     const { error } = schemas.registerSchema.validate(req.body);
     if (error) {
       throw HttpError(400, error.message);
@@ -22,8 +31,13 @@ router.post("/register", async (req, res, next) => {
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
+    const avatarURL = gravatar.url(email);
 
-    const newUser = await User.create({ ...req.body, password: hashPassword });
+    const newUser = await User.create({
+      ...req.body,
+      password: hashPassword,
+      avatarURL,
+    });
     res.status(201).json({
       user: {
         email: newUser.email,
@@ -83,5 +97,29 @@ router.post("/logout", authenticate, async (req, res) => {
   await User.findByIdAndUpdate(_id, { token: "" });
   res.status(204).json();
 });
+
+router.patch(
+  "/avatars",
+  authenticate,
+  upload.single("avatar"),
+  async (req, res, next) => {
+    try {
+      const { _id } = req.user;
+      const { path: tempUpload, originalname } = req.file;
+      const fileName = `${_id}_${originalname}`;
+      const resultUpload = path.join(avatarDir, fileName);
+      await fs.rename(tempUpload, resultUpload);
+      const image = await Jimp.read(resultUpload);
+      await image.resize(250, 250).write(resultUpload);
+      const avatarURL = path.join("avatars", fileName);
+      await User.findByIdAndUpdate(_id, { avatarURL });
+      res.json({
+        avatarURL,
+      });
+    } catch (error) {
+      next(HttpError(404, "Not found"));
+    }
+  }
+);
 
 module.exports = router;
